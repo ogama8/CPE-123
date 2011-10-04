@@ -4,6 +4,10 @@
 ;; Assignment 1
 ;; Eli Backer, Max Parelius, Cameron Javier
 
+;; This file is for chopping samples while
+;; maintaining sanity by dealing with chop
+;; length in milliseconds
+
 (require (planet "main.rkt" ("clements" "rsound.plt" 2 5)))
 (define home-dir "/Volumes/ELI'S KEY/CPE 123/")
 
@@ -12,14 +16,14 @@
 (define (read x) (rs-read (file x)))
 
 ;;(rs-write
-;;(play 
+(play 
 ;; (rs-read (file "hg4"))
-;; (rs-read/clip (file "hg") (ms 26800) (ms 28800))
+ (rs-read/clip (file "hg") (ms 26800) (ms 28800))
 ;;"/Volumes/ELI'S KEY/CPE 123/hg4.wav"
-;;)
+)
 
-(play (rs-append* (list (read "hg1") (silence (ms 500)) 
-                        (read "hg2") (silence (ms 500)) 
-                        (read "hg3") (silence (ms 500)) 
-                        (read "hg4") (silence (ms 500)) 
-                        (read "hg5"))))
+;;(play (rs-append* (list (read "hg1") (silence (ms 500)) 
+;;                        (read "hg2") (silence (ms 500)) 
+;;                        (read "hg3") (silence (ms 500)) 
+;;                        (read "hg4") (silence (ms 500)) 
+;;                        (read "hg5"))))

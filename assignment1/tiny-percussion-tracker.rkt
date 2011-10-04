@@ -1,3 +1,6 @@
+;; A modification of John Clements tiny-percussion-tracker to load files in a 
+;; sane manner and play custom .wav files
+
 #lang racket
 
 (require (planet clements/rsound)
