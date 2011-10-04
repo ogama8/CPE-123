@@ -1,0 +1,19 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname |Lab 6|) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ())))
+;; Exercise 20
+(define (string-join str1 str2) 
+  (string-append str1 "_" str2))
+
+(string-join "good" "day")
+
+
+;; Exercise 21
+(define (string-insert str x) 
+  (string-append (substring str 0 x) 
+                 "_" 
+                 (substring str x 
+                            (string-length str))))
+
+(string-insert "goodday" 4)
+
