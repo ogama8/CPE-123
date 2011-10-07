@@ -23,9 +23,9 @@
 
 ;; Stutter
 (define (eight snd) (clip snd 0 (round (* (rsound-frames snd) 1/8))))
-(define (stutter rs) (play (rs-append* (for/list ([i (in-range 8)]) (eight rs)))))
+(define (stutter rs) (rs-append* (for/list ([i (in-range 8)]) (eight rs))))
 
-;;(stutter (rs-read/clip "/Users/Eli/Documents/CP Fall 2011/CPE-123/Assignment1/hg.wav" 0 441000))
+;;(play (stutter (rs-read/clip "/Users/Eli/Documents/CP Fall 2011/CPE-123/Assignment1/hg.wav" 0 441000)))
 
 
 ;; Chord
