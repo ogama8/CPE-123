@@ -41,6 +41,8 @@
                              [(or (or (= (/ x y) (/ 5 4)) (= (/ x y) (/ 4 5))) (or (= (/ x y) (/ 6 5)) (= (/ x y) (/ 5 6)))) "third"]
                              [else "unknown"]))
 
+(classify 440 (* 440 3/2))
+
 
 ;; Noisy
 (define (noisy n) (/ (- (random 100) 50) 200))
