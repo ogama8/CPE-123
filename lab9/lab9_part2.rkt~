@@ -1,0 +1,17 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-intermediate-reader.ss" "lang")((modname lab9_part2) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ())))
+;;Eli Backer - Lab 9 part 2 - Clements - CPE 123 - Fall 2011
+
+;; Initial Requires/Defines
+(require (planet "main.rkt" ("clements" "rsound.plt" 2 5)))
+(require (planet "draw.rkt" ("clements" "rsound.plt" 2 5)))
+(define (ms x) (* x 44.1))
+
+;; note [number or booleean] -> sound (void)
+ ; Given MIDI number -> 1/4 sec tone at pitch
+ ; Given false -> 1/4 sec silence
+(define (note nn)
+  (cond ([false? nn] (play (silence (ms 250))))
+        (else (local ((define (tone n) (sin (* 2 n pi 1/44100 (* 440 (expt 2 (/ (- nn 69) 12)))))))
+                (play (mono-signal->rsound (ms 250) tone))))))

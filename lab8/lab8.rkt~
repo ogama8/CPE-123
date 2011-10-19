@@ -1,0 +1,18 @@
+;; The first three lines of this file were inserted by DrRacket. They record metadata
+;; about the language level of this file in a form that our tools can easily process.
+#reader(lib "htdp-intermediate-reader.ss" "lang")((modname |lab 8|) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ())))
+(require (planet "main.rkt" ("clements" "rsound.plt" 2 5)))
+(require (planet "draw.rkt" ("clements" "rsound.plt" 2 5)))
+(define (ms x) (* 44.1 x))
+
+;; t
+;;(check-within (t 60) -.961 .001)
+(define (t n) (cos (/ (* 2 pi 400 n) 44100)))
+
+(check-within (t 60) -.961 .001)
+
+;;(play (mono-signal->rsound (ms 1000) t))
+;;(rsound-draw (mono-signal->rsound (ms 1000) t))
+
+(define (sum-t x y z) (* (+ (t x) (t y) (t z)) 1/3))
+
