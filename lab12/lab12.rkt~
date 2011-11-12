@@ -1,0 +1,9 @@
+#lang racket
+
+(define i (sqrt -1))
+(define z (exp (* i 2 pi -1/44100)))
+
+(define (f w)
+  (+ 959320534410000 
+     (* -70373209 (expt z (* 2 w)) 
+        (expt z 4))))

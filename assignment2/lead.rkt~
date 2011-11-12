@@ -1,0 +1,37 @@
+#lang racket
+
+(require (planet clements/rsound/main) 
+         (planet clements/rsound/draw)
+         racket/runtime-path)
+
+(define-runtime-path trackNotes "lead.tracker")
+
+(define (ms n) (* 44.1 n))
+(define msr mono-signal->rsound)
+
+;; Basic Sine Wave
+(define (osc freq amp)
+  (local [(define (sig f)
+            (* amp (sin (* 2 pi freq f 1/44100))))]
+    sig))
+
+;; Signal Operators
+(define (sig+ sig1 sig2)
+  (local [(define (sig f)
+          (+ (sig1 f) (sig2 f)))]
+    sig))
+
+(define (sig* sig1 sig2)
+  (local [(define (sig f)
+          (* (sig1 f) (sig2 f)))]
+    sig))
+
+;; Constant as Function
+(define (k amp)
+  (local [(define (sig f) amp)]
+    sig))
+
+
+(define trackStr (file->lines trackNotes))
+
+trackStr

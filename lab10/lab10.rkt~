@@ -1,0 +1,7 @@
+#lang racket
+;; Eli Backer - Lab 10 - Clements - CPE 123 - Fall 2011
+
+;; Initial Requires/Defines
+(require (planet clements/rsound))
+(require (planet "draw.rkt" ("clements" "rsound.plt" 2 5)))
+(define (ms x) (floor (* x 441 1/10)))

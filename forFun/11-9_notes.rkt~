@@ -1,0 +1,31 @@
+#lang racket
+
+(require (planet clements/rsound))
+
+(define msr mono-signal->rsound)
+
+(define (osc freq amp)
+  (local [(define (sig f)
+            (* amp (sin (* 2 pi freq f 1/44100))))]
+    sig))
+
+(define (sig+ sig1 sig2)
+  (local [(define sig f)
+          (+ (sig1 f) (sig2 f))]
+    sig))
+
+(define (sig* sig1 sig2)
+  (local [(define sig f)
+          (* (sig1 f) (sig2 f))]
+    sig))
+
+(define (k amp)
+  (local [(define (sig f) amp)]
+    sig))
+
+(define lfo-1 (osc 32 1))
+
+(play (msr 44100
+           (sig* lfo-1
+                 (sig+ (osc 130 .2)
+                       (osc 261 .4)))))

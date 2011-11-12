@@ -1,7 +1,7 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
 #reader(lib "htdp-intermediate-reader.ss" "lang")((modname lab9) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ())))
-;;Eli Backer - Lab 9 - Clements - CPE 123 - Fall 2011
+;; Eli Backer - Lab 9 - Clements - CPE 123 - Fall 2011
 
 ;; Initial Requires/Defines
 (require (planet "main.rkt" ("clements" "rsound.plt" 2 5)))
@@ -13,11 +13,11 @@
 ;; ring: number number -> rsound
  ; Given frequnecy and time produces sine with decay of 4*time
 (define (ring f t)
-  (local ((define (tone n) (* (expt 1/2 (/ n t)) (sin (* 2 n pi 1/44100 f)))))
+  (local [(define (tone n) (* (expt 1/2 (/ n t)) (sin (* 2 n pi 1/44100 f))))]
     (mono-signal->rsound (* 4 t) tone)))
 
-;(rsound-draw (ring 440 (ms 500)))
-;(play (ring 220 (ms 500)))
+;(rsound-draw (ring 440 (ms 300)))
+;(play (ring 220 (ms 300)))
 
 
 
@@ -29,8 +29,8 @@
                                      (sin (* 2 n pi 1/44100 (- f (/ 44100 t))))))))
     (mono-signal->rsound (* 4 t) tone)))
 
-;(rsound-draw (beat 220 (ms 1000)))
-;(play (beat 220 (ms 1000)))
+(rsound-draw (beat 220 (ms 1000)))
+(play (beat 220 (ms 1000)))
 
 
 
@@ -43,3 +43,4 @@
                 (play (mono-signal->rsound (ms 250) tone))))))
 
 ;(note 60)
+;(note false)
