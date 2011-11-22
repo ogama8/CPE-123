@@ -44,9 +44,9 @@
   (local [(define (sig f) amp)]
     sig))
 
-;; nn->Hz: string -> number
+;; nName->Hz: string -> number
  ; Given a string of a note (see above for convention) produces a frequency
-(define (nn->hz nnOct) 
+(define (nName->hz nnOct) 
   (local [(define nn (substring nnOct 0 1))
           (define oct (string->number (substring nnOct 1 2)))]
     (cond ([string=? nn "S"] 0)
@@ -65,10 +65,14 @@
                                   ([string=? nn "B"] 11))) 69) 12)))))))
 
 
-(define (hfAtt f) 
+;; tfAtt: number -> number
+ ; Given a number, produces a number in the function of a thousend frame attack, then constant value
+(define (tfAtt f) 
   (cond ([< f 999] (* (+ 1 f) 1/1000))
         (else 1)))
 
+;; nlFil: string -> bool
+ ; Given an empty string, produces false, else true
 (define (nlFil str) (not (string=? str "")))
 
 ;; track->rs: file function -> rsound
@@ -85,7 +89,7 @@
                                                  (string->number (substring (list-ref trackStr (+ 4 i)) 
                                                                             3
                                                                             (string-length (list-ref trackStr (+ 4 i))))))))
-                        (define freq (nn->hz (list-ref trackStr (+ 4 i))))
+                        (define freq (nName->hz (list-ref trackStr (+ 4 i))))
                         (define (sig f)
                           (cond ([< f (- len 1000)] 
                                  (* (+ .9 (* .1 (sin (* 2 pi freq (* f 1/30) 1/44100)))) 
@@ -103,10 +107,12 @@
                                             (* .4 1/6 (- 1 (sin (* 2 pi 6 freq f 1/44100))))
                                             (* .35 1/6 (- 1 (sin (* 2 pi 8 freq f 1/44100))))
                                             (* .05 1/6 (- 1 (sin (* 2 pi 12 freq f 1/44100)))))))))]
-                  (msr len (lpf/dynamic hfAtt sig)))))))
+                  (msr len (lpf/dynamic tfAtt sig)))))))
 
 (play (overlay (times 28 (track->rs trkLoc3))
                (overlay (times 28 (track->rs trkLoc2))
                         (track->rs trkLoc))))
 
-#;(rs-write (track->rs trkLoc) "/Users/Eli/Documents/CP Fall 2011/CPE-123/assignment2/organ.wav")
+#;(rs-write (overlay (times 28 (track->rs trkLoc3))
+               (overlay (times 28 (track->rs trkLoc2))
+                        (track->rs trkLoc))) "/Users/Eli/Documents/CP Fall 2011/CPE-123/assignment2/organ.wav")

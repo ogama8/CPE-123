@@ -1,0 +1,27 @@
+#lang racket
+;; Lab 13 - Eli Backer - CPE 123 - Clements - Fall 2011
+
+(require rackunit)
+(require (planet "main.rkt" ("clements" "rsound.plt" 2 5)))
+
+(define msr mono-signal->rsound)
+(define (one n)
+  (local ((define (f x) 1))
+    f))
+
+(define sndList (list (msr 100 one)
+                      (msr 100 one)
+                      (msr 100 one)
+                      (msr 100 one)
+                      (msr 100 one)))
+
+;; sum-of-durations: list -> number
+ ; given a list of rsounds -> total lenght of all sounds in list
+(define (sum-of-durations list)
+  (for/fold ([total 0])
+    ([n (in-list list)])
+    (+ total (rsound-frames (list-ref list n)))))
+
+(check-= (sum-of-durations sndList) 
+         500
+         1e-4)

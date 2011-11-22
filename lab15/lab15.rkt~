@@ -1,0 +1,18 @@
+#lang racket
+;; Lab 14 - CPE 123 - Eli Backer - Clements - Fall 2011
+
+(define (ms x) (* x 44.1))
+
+;; a note is either
+ ; (make-note nn vol dur)
+ ; (make-silence dur)
+(define-struct midiNote (nn vol dur))
+(define-struct silence (dur))
+
+(midiNote 69 1 (ms 1000))
+(silence 56)
+(midiNote 10 .2 4410)
+
+
+;; note->sound: (list note note ...) -> rsound
+ ; Given a list of notes, produces corrispoding chord

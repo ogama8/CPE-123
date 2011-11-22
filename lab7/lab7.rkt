@@ -71,6 +71,6 @@
 ;;(check-expect (name->rsound "a" 4) 440)
 (define (name->rsound nn oct) 
   (local ((define (tone f) (sin (* f 2 pi 1/44100 (* 440 (expt 2 (/ (- (name->note-num nn oct) 69) 12)))))))
-  (mono-signal->rsound 22050 tone)))
+    (mono-signal->rsound 22050 tone)))
 
 (play (name->rsound "a" 4))
