@@ -1,0 +1,231 @@
+#lang racket
+
+(require (planet clements/rsound/main) 
+         (planet clements/rsound/filter)
+         (planet clements/rsound/draw)
+         racket/runtime-path
+         rackunit)
+
+(define (ms n) (* 44.1 n))
+(define msr mono-signal->rsound)
+
+;; FILE CONVENTION FOR .tr FILES
+ ; TITLE
+ ; BPM
+ ; NOTE FOR BEAT (ie. 2 = 1/2 note, 4 = 1/4 note, etc)
+ ; ******************
+ ; NOTE (UPPERCASE = NATURAL, lowercase = sharp (possibles: c d f g a))
+ ; OR . OR NOTHING (. HOLDS NOTE, NOTHING STOPS TONE)
+ ; ...
+ ; ****************** (INDICATES END OF SEQUENCE)
+
+(define-runtime-path trFile "charBass.tr")
+(define-runtime-path trFile2 "charChord.tr3")
+
+;; FILE CONVENTION FOR .bsyn FILES
+ ; TITLE
+ ; ****************************************
+ ; Wav| WAVEFORM
+ ; 1 = Sine
+ ; 2 = ?
+ ; Att| ATTACK TIME IN MILISECONDS
+ ; Dec| DECAY TIME IN MILISECONDS
+ ; Sus| SUSTAIN LEVEL (0 to 1)
+ ; Rel| RELEASE TIME IN MILISECONDS
+ ; ****************************************
+
+(define-runtime-path bsynFile "sin1.bsyn")
+(define-runtime-path bsynFile2 "sin2.bsyn")
+
+;; window: number number number number number -> function
+ ; calculates a window function from attack, decay, sustain, release (all in milliseconds), and length (frames)
+(define (window att dec sus rel len)
+  (local [(define (f x)
+          (cond [(<= x (ms att)) (/ x (ms att))]
+                [(<= x (+ (ms att) (ms dec))) (- 1 (* (- 1 sus) (/ (- x (ms att)) (ms dec))))]
+                [(<= x len) sus]
+                [(<= x (+ len (ms rel))) (- sus (* sus (/ (- x len) (ms rel))))]))]
+    f))
+
+;; bsyn->sig: file len -> function
+ ; given a .bsyn file and length, produces an appropriate function
+(define (bsyn->sig file len)
+  (local ((define fileStr (file->lines file))
+          (define att (string->number (substring (list-ref fileStr 3) 5)))
+          (define dec (string->number (substring (list-ref fileStr 4) 5)))
+          (define sus (string->number (substring (list-ref fileStr 5) 5)))
+          (define rel (string->number (substring (list-ref fileStr 6) 5))))
+    (window att dec sus rel len)))
+
+
+;; Basic Sine Wave
+(define (osc freq amp)
+  (local [(define (sig f)
+            (* amp (sin (* 2 pi freq f 1/44100))))]
+    sig))
+
+;; Signal Operators
+(define (sig+ sig1 sig2)
+  (local [(define (sig f)
+          (+ (sig1 f) (sig2 f)))]
+    sig))
+
+(define (sig* sig1 sig2)
+  (local [(define (sig f)
+          (* (sig1 f) (sig2 f)))]
+    sig))
+
+;; Constant as Function
+(define (k amp)
+  (local [(define (sig f) amp)]
+    sig))
+
+;; nName->Hz: string -> number
+ ; Given a string of a note (see above for convention) produces a frequency
+(define (nName->hz nnOct) 
+  (local [(define nn (substring nnOct 0 1))
+          (define oct (string->number (substring nnOct 1 2)))]
+    (cond ([string=? nn "S"] 0)
+          (else (* 440 (expt 2 (/ (- (+ (* (+ 1 oct) 12) 
+                            (cond ([string=? nn "C"] 0)
+                                  ([string=? nn "c"]  1)
+                                  ([string=? nn "D"] 2)
+                                  ([string=? nn "d"]  3)
+                                  ([string=? nn "E"] 4)
+                                  ([string=? nn "F"] 5)
+                                  ([string=? nn "f"]  6)
+                                  ([string=? nn "G"] 7)
+                                  ([string=? nn "g"]  8)
+                                  ([string=? nn "A"] 9)
+                                  ([string=? nn "a"]  10)
+                                  ([string=? nn "B"] 11))) 69) 12)))))))
+
+;; nlFil: string -> bool
+ ; Given an empty string, produces false, else true
+(define (nlFil str) (not (string=? str "")))
+
+;; tr->noteList: file number -> list
+ ; given a .tr file location, extracts the first note values after the ***
+ ; first note values are found at number.
+(define (tr->noteList floc in)
+  (local ((define trList (file->lines floc)))
+    (for/list ([i (in-range (+ -4 (length trList)))])
+      (substring (list-ref trList (+ 4 i)) 
+                 in
+                 (+ 2 in)))))
+
+;; no**?: any/c -> bool
+ ; computes whether arg is ". " or "**"
+(define (no**? arg)
+  (not (or (string=? arg ". ")
+           (string=? arg "**"))))
+
+(check equal? (no**? ". ") #f)
+(check equal? (no**? "**") #f)
+(check equal? (no**? "  ") #t)
+(check equal? (no**? "a3") #t)
+
+
+;; noteList->noSpaceList: list -> list
+ ; given a list of notes, .'s and spaces, produces a list of only notes and S's
+ ; (representing silence)
+ ; removes the ** end of file marker
+(define (noteList->noSpaceList list)
+  (filter no**? (for/list ([i (in-range (length list))])
+                  (cond [(string=? (list-ref list i) "  ") "S0"]
+                        [else (list-ref list i)]))))
+
+(check equal? (noteList->noSpaceList (list "a3" ". " "**"))
+       (list "a3"))
+(check equal? (noteList->noSpaceList (list "a3" ". " "  " "**"))
+       (list "a3" "S0"))
+(check equal? (noteList->noSpaceList (list "a3" ". " "A4" "**"))
+       (list "a3" "A4"))
+
+;; tr->parsedList: file -> list
+ ; combines tr->noteList and noteList->noSpaceList
+(define (tr->parsedList file in)
+  (noteList->noSpaceList (tr->noteList file in)))
+
+;; noVoid?: any/c -> bool
+ ; computes whether arg is #<void>
+(define (noVoid? arg)
+  (not (void? arg)))
+
+;; lenFromList: list -> list
+ ; calculates length in number of units per beat for notes in a .tr file
+ ; MUST CONTAIN A "**" AT END
+(define (lenFromList list)
+  (local ((define counter 1)) 
+    (filter noVoid? (for/list ([i (in-range (length list))])
+                      (cond [(string=? (list-ref list i) "  ") (set! counter 1)
+                                                               counter]
+                            [(or (string=? (list-ref list i) ". ")
+                                 (string=? (list-ref list i) "**")) (set! counter 1)]
+                            [else (local ((define (sum items) 
+                                            (cond [(string=? (list-ref items (+ counter i)) ". ") 
+                                                   (set! counter (add1 counter))
+                                                   (sum items)]
+                                                  [else counter])))
+                                    (sum list))])))))
+
+(check equal? (lenFromList (list "a3" ". " "**"))
+       (list 2))
+(check equal? (lenFromList (list "a3" ". " ". " "**"))
+       (list 3))
+(check equal? (lenFromList (list "a3" ". " "a3" "**"))
+       (list 2 1))
+
+
+;; track->rs: path path (number) -> rsound
+ ; Given .tr file and a .bsyn, produces a rsound
+ ; optional: the colum to start on for the note list (default: 4)
+(define (track->rs fLoc bLoc #:startCol [in 4] #:endClip [end #t])
+  (local [(define trackStr (file->lines fLoc))
+          (define noteStr (tr->parsedList fLoc in))
+          (define durStr (lenFromList (tr->noteList fLoc in)))
+          (define bsynStr (file->lines bLoc))
+          (define bpm (string->number (list-ref trackStr 1)))
+          (define beat (string->number (list-ref trackStr 2)))
+          (define rel (ms (string->number (substring (list-ref bsynStr 6) 5))))
+          (define lenSum 0)
+          (define clipLen 0)
+          (define totLen (for/fold ([tot 0])
+                           ([i (in-range (length durStr))])
+                           (+ tot (list-ref durStr i))))
+          (define (beats->frames numBeats)
+            (round (* 44100 numBeats (/ 60 bpm (* beat 2)))))]
+    (cond [end (set! clipLen (+ -1 (beats->frames totLen)))]
+          [else (set! clipLen (+ -1 (beats->frames totLen) rel))])
+    (clip 
+     (assemble
+      (for/list ([i (in-range (length durStr))])
+        (local [(define len 
+                  (beats->frames (list-ref durStr i)))
+                (define freq 
+                  (nName->hz (list-ref noteStr i)))
+                (define (sig f)
+                  (sin (* 2 pi freq f 1/44100)))]
+          (set! lenSum (+ len lenSum))
+          (list (scale .5 (msr (+ len rel) (sig* (bsyn->sig bLoc len)sig))) (- lenSum len)))))
+     0
+     clipLen)))
+
+;; trNum->rs: path path -> rsound
+ ; given a .tr# file (representing a chord) and a .bsyn file
+ ; produces an rsound
+(define (trNum->rs fLoc bLoc #:endClip [end #t])
+  (for/fold ([rtot (make-tone 1 0 1)])
+    ([i (in-range (string->number (substring (path->string fLoc) 
+                                              (+ -1 (string-length (path->string fLoc))))))])
+    (overlay (scale .5 (track->rs fLoc bLoc #:startCol (+ 4 (* 3 i)) #:endClip end))
+             (scale .5 rtot))))
+
+
+#;(play (overlay (scale .5 (rs-read "/Users/Eli/Documents/CP Fall 2011/CPE-123/assignment3/samples/Riff intro 110 beat.wav"))
+               (overlay (scale .5 (rs-read "/Users/Eli/Documents/CP Fall 2011/CPE-123/assignment3/samples/123 riff bass and beat110.wav"))
+                        (scale .5 (overlay (scale .5 (times 4 (trNum->rs trFile2 bsynFile2)))
+                                           (scale .5 (rs-read "/Users/Eli/Documents/CP Fall 2011/CPE-123/assignment3/samples/Riff1.wav")))))))
+(play (times 4 (trNum->rs trFile2 bsynFile)))
+#;(rs-write (times 4 (trNum->rs trFile2 bsynFile))
+          "/Users/Eli/Documents/CP Fall 2011/CPE-123/assignment3/samples/finished/outro.wav")

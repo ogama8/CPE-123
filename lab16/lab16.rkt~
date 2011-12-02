@@ -1,0 +1,97 @@
+#lang racket
+;; Lab 16 - CPE 123 - Eli Backer - Clements - Fall 2011
+
+(require (planet clements/rsound/main) 
+         (planet clements/rsound/draw)
+         (planet clements/rsound/filter)
+         racket/runtime-path
+         rackunit)
+(define (ms x) (* x 44.1))
+
+
+;; a pom is 
+ ; (make-pn number number)
+ ; (make-seq pom pom)
+ ; (make-ovl pom pom)
+(define-struct pn (nn dur))
+(define-struct seq (p1 p2))
+(define-struct ovl (p1 p2))
+
+(pn 60 100)
+(seq (make-pn 60 100) 
+     (seq (make-pn 60 100) 
+          (make-pn 60 100)))
+(ovl (seq (make-pn 60 100) 
+          (make-pn 60 100))
+     (seq (make-pn 60 100) 
+          (make-pn 60 100)))
+
+;; highest: pom -> number
+ ; computes the highest note in a pom
+(define (highest p)
+  (cond [(pn? p) (pn-nn p)]
+        [(seq? p) (max (highest (seq-p1 p))
+                       (highest (seq-p2 p)))]
+        [(ovl? p) (max (highest (ovl-p1 p))
+                       (highest (ovl-p2 p)))]))
+
+(check-equal? 69
+              (highest (seq (make-pn 69 100) 
+                            (make-pn 60 100))))
+(check-equal? 10
+              (highest (ovl (seq (make-pn 10 100) 
+                                 (make-pn 6 100))
+                            (seq (make-pn 1 100) 
+                                 (make-pn 3 100)))))
+
+;; longest: pom -> number
+ ; computes the longest note in a pom
+(define (longest p)
+  (cond [(pn? p) (pn-dur p)]
+        [(seq? p) (max (longest (seq-p1 p))
+                       (longest (seq-p2 p)))]
+        [(ovl? p) (max (longest (ovl-p1 p))
+                       (longest (ovl-p2 p)))]))
+
+(check-equal? 1000
+              (longest (seq (make-pn 69 1000) 
+                            (make-pn 60 100))))
+(check-equal? 1000
+              (longest (ovl (seq (make-pn 10 10) 
+                                 (make-pn 6 1000))
+                            (seq (make-pn 1 10) 
+                                 (make-pn 3 1)))))
+
+
+
+(define (midToFreq nn)
+  (* 440 (expt 2 (* 1/12 (- nn 69)))))
+;; serialize: pom -> rsound
+ ; computes the rsound for a pom
+(define (serialize p)
+  (cond [(pn? p) (make-tone (midToFreq (pn-nn p)) .2 10)]
+        [(seq? p) (rs-append (serialize (seq-p1 p))
+                             (serialize (seq-p2 p)))]
+        [(ovl? p) (overlay (serialize (ovl-p1 p))
+                           (serialize (ovl-p2 p)))]))
+
+#;(check-equal? (rsound-equal? (serialize (ovl (seq (make-pn 100 10) 
+                                                  (make-pn 60 1000))
+                                             (seq (make-pn 10 10) 
+                                                  (make-pn 30 1))))
+                             (overlay (rs-append (make-tone (midToFreq 100) .2 10)
+                                                 (make-tone (midToFreq 60) .2 1000))
+                                      (rs-append (make-tone (midToFreq 10) .2 10)
+                                                 (make-tone (midToFreq 30) .2 1))))
+              #t)
+
+(check-equal? (rsound-equal? (serialize (seq (make-pn 100 10) 
+                                             (make-pn 60 1000)))
+                             (rs-append (make-tone (midToFreq 100) .2 10)
+                                        (make-tone (midToFreq 60) .2 1000)))
+              #t)
+
+(play (serialize (ovl (seq (make-pn 100 10000) 
+                           (make-pn 60 10000))
+                      (seq (make-pn 10 100000) 
+                           (make-pn 30 10000)))))
